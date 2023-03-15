@@ -3,20 +3,32 @@ import time
 import cv2 as cv
 from PIL import Image, ImageGrab
 import numpy
+import pyperclip
 
 pic_name = ".md-pictures/README/image-20230314094817514.png"
 
 points = []  # 有序点列表
 
+clipboard_lastval=pyperclip.paste()
+def clipboard_changed():
+    contain = pyperclip.paste()
+    global clipboard_lastval
+    if not contain == clipboard_lastval:
+        clipboard_lastval=contain
+        return True
+    return False
 # 依次是最左点横坐标,最下点纵坐标,最右点横坐标,最上点纵坐标
 ##
-abs_left_x, abs_down_y, abs_right_x, abs_up_y = 106.521129, 29.565775, 106.545631, 29.587638
+inf=999999999
+
+abs_left_x, abs_down_y, abs_right_x, abs_up_y =inf,inf,-inf,-inf
 img = ""
 
 
 def draw_point(_img, pos, color=(0, 0, 255), size=2):
     cv.circle(_img, pos, size, color, -1)
-
+# 106.533221,29.56578
+#
 
 def calibration(_points):  # 校准
     rel_up_y = False
@@ -73,9 +85,6 @@ def coordinate_trans(rel_pos, rel_left, rel_down, abs_left, abs_down, _rate_x, _
 # 大渡口,江北termios
 
 def solve():
-    global img
-    img = ImageGrab.grabclipboard()
-    img = cv.cvtColor(numpy.asarray(img), cv.COLOR_RGB2BGR)
     re_draw()
     if cv.waitKey(0) & 0xFF == 27:
         cv.destroyAllWindows()
@@ -86,10 +95,30 @@ def solve():
     points.clear()
     return abs_points
 
+while True:
+    abs_left_x, abs_down_y, abs_right_x, abs_up_y =inf,inf,-inf,-inf
+    i=0
+    while i<4:
+        time.sleep(0.5)
+        if clipboard_changed():
+            print("读取剪切板",clipboard_lastval)
+            x,y=map(float,clipboard_lastval.split(","))
+            abs_left_x=min(abs_left_x,x) 
+            abs_right_x=max(abs_right_x,x)
+            abs_down_y=min(abs_down_y,y)
+            abs_up_y=max(abs_up_y,y)           
+            i+=1
 
-res = solve()
-for i in res:
-    print(str(i[0]) + "," + str(i[1]))
+    while i <5:
+        time.sleep(0.5)
+        if clipboard_changed():
+            print("读取图片")
+            img = ImageGrab.grabclipboard()
+            img = cv.cvtColor(numpy.asarray(img), cv.COLOR_RGB2BGR)
+            i += 1
+    res = solve()
+    for i in res:
+        print(str(i[0]) + "," + str(i[1]))
 
-print("------------------")
-time.sleep(1)
+    print("------------------")
+    time.sleep(1)
